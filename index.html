@@ -9,13 +9,13 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html {
-  width: 100%;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
+    width: 100%;
+    overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
 
-html::-webkit-scrollbar { display: none; }
+  html::-webkit-scrollbar { display: none; } /* Chrome/Safari/Opera */
 
   body {
     background: #0a0a0a;
@@ -25,13 +25,11 @@ html::-webkit-scrollbar { display: none; }
     width: 100%;
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
-    /* iOS safe area */
     padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
   }
 
-  /* ── Search ── */
   .search-wrap {
     position: relative;
     width: 100%;
@@ -56,7 +54,7 @@ html::-webkit-scrollbar { display: none; }
     border-radius: 10px;
     color: #f0ede8;
     font-family: 'DM Sans', sans-serif;
-    font-size: 16px; /* must be 16px to prevent iOS zoom */
+    font-size: 16px;
     font-weight: 300;
     padding: 0 14px 0 42px;
     outline: none;
@@ -71,38 +69,31 @@ html::-webkit-scrollbar { display: none; }
     border-color: rgba(255,255,255,0.2);
   }
 
-  /* ── Grid — hard device tiers ── */
   .grid {
     display: grid;
     gap: 10px;
     width: 100%;
-    /* Default: desktop 6 col */
     grid-template-columns: repeat(6, 1fr);
   }
 
-  /* Tablet landscape */
   @media (max-width: 1023px) {
     .grid { grid-template-columns: repeat(5, 1fr); gap: 9px; }
   }
 
-  /* Tablet portrait / large phone landscape */
   @media (max-width: 767px) {
     .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
   }
 
-  /* Phone landscape / small tablet */
   @media (max-width: 599px) {
     .grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
     body { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-top: 12px; }
   }
 
-  /* Phone portrait — 2 columns */
   @media (max-width: 430px) {
     .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     body { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
   }
 
-  /* ── Cards ── */
   .card-wrap {
     display: flex;
     flex-direction: column;
@@ -153,7 +144,6 @@ html::-webkit-scrollbar { display: none; }
     .card-wrap:active .card-overlay { opacity: 1; }
   }
 
-  /* ── Labels ── */
   .card-info { padding: 5px 1px 0; min-width: 0; }
 
   .card-title {
@@ -182,7 +172,6 @@ html::-webkit-scrollbar { display: none; }
     .card-info  { padding: 6px 2px 0; }
   }
 
-  /* ── No results ── */
   .no-results {
     grid-column: 1 / -1;
     text-align: center;
@@ -201,45 +190,39 @@ html::-webkit-scrollbar { display: none; }
     <circle cx="6.5" cy="6.5" r="5" stroke="white" stroke-width="1.5"/>
     <path d="M10.5 10.5L14 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
   </svg>
-  <input type="text" id="search" placeholder="Search all shows..." autocomplete="off" spellcheck="false">
+  <input type="text" id="search" placeholder="Search all animes..." autocomplete="off" spellcheck="false">
 </div>
 
 <div class="grid" id="grid"></div>
 
 <script>
 const MEDIA = [
-{ title: "Legends of Chamberlain Heights", year: "2016", type: "Sport", url: "https://drive.google.com/drive/folders/1zo137kCKfp63EuLLriZBeHp8U07fu0qq", image: "https://cdn.phototourl.com/free/2026-05-02-7383598d-d20e-4c47-9508-d9b58be98a8a.png" },
-{ title: "Total Drama Island: Reboot", year: "2023", type: "Comedy", url: "https://drive.google.com/drive/folders/1y6JO2IeWSvQlpuQjQKJQNHZLN6NgAqIR", image: "https://cdn.phototourl.com/free/2026-05-02-95cfe9f7-7d7f-431c-b4f6-49af1c92520f.png" },
-{ title: "Ted", year: "2024", type: "Comedy", url: "https://drive.google.com/drive/folders/1-6hBb-KZsUoc7ErXnaw2udeQv9u1THRJ", image: "https://cdn.phototourl.com/free/2026-05-02-bda0380e-41e0-4de9-bfae-7205df6cb0dc.png" },
-{ title: "American Dad", year: "2005", type: "Sitcom", url: "https://drive.google.com/drive/folders/1cKosVBoj92b1F5CmvycrHvu4Fgfj6RUB", image: "https://cdn.phototourl.com/free/2026-05-02-75f09bb5-db75-4daa-add0-b1a9cbf419f3.png" },
-{ title: "9-1-1", year: "2018", type: "Action", url: "https://drive.google.com/drive/folders/1JVH8GV-97DRsKRdkrmUF0zE3hcqwZz9a", image: "https://cdn.phototourl.com/free/2026-05-01-4914e53a-bf8c-4318-a67a-898c1548d6b3.png" },
-{ title: "Breaking Bad", year: "2008", type: "Drama", url: "https://drive.google.com/drive/folders/1IY6qairkXpK2RXE0UVtqwm5ZjeiGYk3N", image: "https://cdn.phototourl.com/free/2026-05-01-0e5cf902-66a6-4819-8965-b98c072b23b9.png" },
-{ title: "The Power Puff Girls", year: "1998", type: "Adventure", url: "https://drive.google.com/drive/u/0/folders/1IYfB0oASMroneHQn8KansvGRnNIcYnFd", image: "https://cdn.phototourl.com/free/2026-04-19-0a2ef100-104b-49eb-a169-d678e313e551.png" },
-{ title: "Rick and Morty", year: "2013", type: "Sci Fi", url: "https://drive.google.com/drive/folders/1ySajy4O8tRbVd_vlGCk9uyMxYHFUH-Hy", image: "https://upload.wikimedia.org/wikipedia/en/b/b8/Rick_and_Morty_season_1.png" },
-{ title: "Invincible S1", year: "2021", type: "Action", url: "https://drive.google.com/file/d/1XIuN4Zp35mW0iN4p0ME5APxH18-6Zqft/view?usp=drive_link", image: "https://cdn.phototourl.com/free/2026-04-09-2ea9999a-aa2b-41ed-8087-1c60e0989c0e.jpg" },
-{ title: "Invincible S2", year: "2023", type: "Action", url: "https://drive.google.com/drive/folders/1BXvMJEsw-zNzRc4JHwSSOJUCv0tyee3s", image: "https://cdn.phototourl.com/free/2026-04-09-ab36a5fd-9fc0-4d00-8e41-c130baebdcfc.jpg" },
-{ title: "Invincible S3", year: "2025", type: "Action", url: "https://drive.google.com/drive/folders/1k_nWuyVsCfmIcHAuWfrpysdHE2gwBKDK", image: "https://cdn.phototourl.com/free/2026-04-09-e87283ac-277b-45e8-8701-14183019a09c.jpg" },
-{ title: "Spongebob", year: "1999", type: "Comedy", url: "https://drive.google.com/drive/folders/1QpqcZWVMlzIru0g8xf5olhMeY75YKJkk", image: "https://cdn.phototourl.com/free/2026-04-09-cd1733d2-d447-490d-b6cf-a46eed32baf2.jpg" },
-{ title: "Abbot Elementary S1", year: "2021", type: "Comedy", url: "https://drive.google.com/drive/folders/13dLvT0_1TkcRmVmF6tZlm80xqeoWhxZp", image: "https://upload.wikimedia.org/wikipedia/en/a/a6/AbbottElementaryS1DVD.jpg" },
-{ title: "Abbot Elementary S2", year: "2022", type: "Comedy", url: "https://drive.google.com/drive/folders/1gAtljQ6SnEWUS8HXW-y5jtbcKILcUnFU", image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/d5/AbbottElementarySeason2DVD.jpeg/250px-AbbottElementarySeason2DVD.jpeg" },
-{ title: "Adventure Time", year: "2010", type: "Adventure", url: "https://drive.google.com/drive/folders/1OwoKydzUQUUp6n-Nh7CCAQXGLfchU8Ta", image: "https://cdn.phototourl.com/free/2026-04-09-4f2a2618-3751-49d0-b81c-4e25ca1a7414.jpg" },
-{ title: "Hey Arnold", year: "1996", type: "Comedy Drama", url: "https://drive.google.com/drive/folders/1tvjU4AqKfPOM_wPZA-pJsjYaOKguNaDD", image: "https://upload.wikimedia.org/wikipedia/en/6/68/Hey_arnold_the_movie_poster.jpg" },
-{ title: "The Simpsons", year: "1989", type: "Sitcom", url: "https://drive.google.com/drive/folders/1tXo2krTMvXr-ATSqthy55PUpRRIu1HRr", image: "https://upload.wikimedia.org/wikipedia/en/3/3c/The_Simpsons_season_37.jpg" },
-{ title: "South Park", year: "1997", type: "Comedy", url: "https://drive.google.com/drive/folders/1EvDzzcMmYt8Wol75Ip5PtEfu78USEHH-", image: "https://upload.wikimedia.org/wikipedia/en/8/83/SouthParkbiggerlongeruncut.jpg" },
-{ title: "Squid Game", year: "2021", type: "Thriller", url: "https://drive.google.com/drive/folders/1Zs2H3Nxl-yQHm21RJNbh2bIAesJ5ouY9", image: "https://upload.wikimedia.org/wikipedia/en/thumb/3/38/Squid_Game_season_2_poster.png/250px-Squid_Game_season_2_poster.png" },
-{ title: "Dexter", year: "2006", type: "Drama", url: "https://drive.google.com/drive/folders/1E4EvbTu2EBJiVp0s-PPIumrJfzZR-9N4", image: "https://cdn.phototourl.com/free/2026-04-11-56fdf00d-9267-4f4e-adee-2ad70f86d808.png" },
-{ title: "Dexter Resurrection", year: "2025", type: "Mystery", url: "https://drive.google.com/drive/folders/1GXdePJtLSaixLV4XkbsyF6nVxhskTIow", image: "https://cdn.phototourl.com/free/2026-04-15-cc1955b2-ff32-425a-93f8-f1c1f19f473c.png" },
-{ title: "Family Guy", year: "1999", type: "Sitcom", url: "https://drive.google.com/drive/folders/11W6C-Jqv9iQVasqjfiaYz77puax1UTjH", image: "https://cdn.phototourl.com/free/2026-04-11-3ca94d1e-6e0f-4b2c-97e3-4b4f5c95a5df.png" },
-{ title: "Phineas and Ferb", year: "2007", type: "Musical", url: "https://drive.google.com/drive/folders/15O2LLhprQNEUGA73u-jdNp3kL8UAHZUB", image: "https://cdn.phototourl.com/free/2026-04-11-63f8b9f8-311a-4522-b936-45e6a3f8fce9.png" },
-{ title: "Stranger Things S1", year: "2016", type: "Horror", url: "https://drive.google.com/drive/folders/1nvlUoxv5y_55eN0yjkIGJ3u84p9wQGxm", image: "https://cdn.phototourl.com/free/2026-04-11-5cb0b866-614a-4a66-b84f-5ce85c605da7.png" },
-{ title: "Wednesday", year: "2022", type: "Horror", url: "https://drive.google.com/drive/folders/1o99ZY5RLvFF1k0K-CU2Qu-MEm7rQZyap", image: "https://cdn.phototourl.com/free/2026-04-11-acbe07c9-e8d0-4e1c-bd5b-6b323110929e.png" },
-{ title: "Harley Quinn", year: "2019", type: "Action", url: "https://drive.google.com/drive/folders/1ap71sKGnRDDqySR6TlfL_sXpwoM5B1Q9", image: "https://cdn.phototourl.com/free/2026-04-11-fecf13aa-93c0-4a33-9397-561175031b81.png" },
-{ title: "Steven Universe", year: "2013", type: "Adventure", url: "https://drive.google.com/drive/folders/1DdwOFAilBai2kDZVmRDCoNkqxTu6_E_5", image: "https://cdn.phototourl.com/free/2026-04-15-d6220b71-098a-42fe-8d59-0291175cf229.png" },
-{ title: "Sneaker Heads", year: "2020", type: "Comedy", url: "https://drive.google.com/drive/folders/1DdwOFAilBai2kDZVmRDCoNkqxTu6_E_5", image: "https://cdn.phototourl.com/free/2026-04-19-65fcf165-e5dc-4e97-a28e-d6d32e39ecef.png" },
-{ title: "Bondocks", year: "2005", type: "Sitcom", url: "https://drive.google.com/drive/folders/1ujarzaX_90FGOiRC15OmXOAgwSbdI_kA", image: "https://cdn.phototourl.com/free/2026-04-19-4420efab-0dfa-402c-9556-55527f19b6dc.png" },
-{ title: "Johnny Test", year: "2005", type: "Action", url: "https://drive.google.com/drive/folders/1nvLcxoIwVcA8MAnnvWHMCRXcTmsgOkT3", image: "https://cdn.phototourl.com/free/2026-04-19-c6dbfad4-5f1a-4568-ac35-6bcd9e446d8c.png" },
-{ title: "Outerbanks", year: "2020", type: "Drama", url: "https://drive.google.com/drive/folders/1-2GIqLddtiou6bcJ9pUfVkZhUk_VnGML", image: "https://cdn.phototourl.com/free/2026-04-19-42dcc7b3-ea55-45d5-ad1d-2cbfe0d99089.png" },
-{ title: "Cobra Kai", year: "2018", type: "Action", url: "https://drive.google.com/drive/folders/1idzqcZUju0ADDEWnm1D9AC344rIFiGRN", image: "https://cdn.phototourl.com/free/2026-04-09-1acaa7e5-52ce-4182-ae9a-6ba729984cc1.jpg" },
+{ title: "Spy x Family", year: "2022", type: "Action", url: "https://drive.google.com/drive/folders/1rFZBP0NVuPgKlOANS10UKYMdyQGY3v_3", image: "https://cdn.phototourl.com/free/2026-05-02-8876f5bb-a7b7-4044-988b-8314f26c5430.png" },
+{ title: "Jujutsu Kaisen", year: "2020", type: "Adventure", url: "https://drive.google.com/drive/folders/1eqNcKK02wEdRV7RnfrmDRZf2s2QZHUyj", image: "https://cdn.phototourl.com/free/2026-05-02-66f0cd2a-0e1f-4209-86ef-63951e9165b3.png" },
+{ title: "Dragon Ball Super", year: "2015", type: "Action", url: "https://drive.google.com/drive/folders/1pBeEXAWh8tneZc2KtwqTfP0AYJGKLKiO", image: "https://cdn.phototourl.com/free/2026-04-19-9338c6a9-13ba-45e3-b877-e3a1cf6eca67.png" },
+{ title: "Blue Lock", year: "2022", type: "Sport", url: "https://drive.google.com/drive/folders/1L_4PmRvkuqYsvLQSzMuaqRVDQg2pb9Z6", image: "https://cdn.phototourl.com/free/2026-04-11-8a8df8c7-da03-4843-920c-35144a7ee161.png" },
+{ title: "Death Note", year: "2006", type: "Thriller", url: "https://drive.google.com/drive/folders/166tNe4UUWgYROWK4DwhtZKxgrpFZZAm5", image: "https://cdn.phototourl.com/free/2026-04-11-8e00fc01-2dfd-4e2c-93bd-b47ec9fb0d01.png" },
+{ title: "One Piece", year: "1999", type: "Adventure", url: "https://drive.google.com/drive/u/0/folders/1VdoAVMV9ojCefzkVMsXB3ms5TCEcgxoC", image: "https://cdn.phototourl.com/free/2026-04-11-b0f28d17-5236-4f04-803b-247260295a72.png" },
+{ title: "Solo Leveling", year: "2024", type: "Anime", url: "https://drive.google.com/drive/folders/1E6FjKpTju8Ebn_ZYTMRWn2v2tiPRwISy", image: "https://cdn.phototourl.com/free/2026-05-02-56e6f14a-7899-4909-9eb4-b19e56d02b7a.png" },
+{ title: "Afro Samurai", year: "2007", type: "Action", url: "https://drive.google.com/drive/folders/1enWphPUwgRPYnGj2TD7XVNrG8HCc3CDm", image: "https://cdn.phototourl.com/free/2026-04-11-cb5166ba-8b65-41a1-9033-d02ba9baa11d.png" },
+{ title: "Chainsaw Man", year: "2022", type: "Horror", url: "https://drive.google.com/drive/folders/14ES_2SDXFRV6n1FU880Hk8en7BMkOC_3", image: "https://cdn.phototourl.com/free/2026-04-11-fa2b8867-fefb-4f36-a39a-99dfd770fee7.png" },
+{ title: "Boruto", year: "2017", type: "Adventure", url: "https://drive.google.com/file/d/1HvCHAWB7NhIqPbpcv3IH0r2i61AGnEBE/view", image: "https://cdn.phototourl.com/free/2026-04-11-ef01b91f-3fe4-445b-a700-ac2af0a9a5e3.png" },
+{ title: "Pokemon", year: "1997", type: "Adventure", url: "https://drive.google.com/drive/folders/1I7-ZUInlg9jb4R6LGq0qX3n7bjGKPFFO", image: "https://cdn.phototourl.com/free/2026-04-17-16876cd3-93fd-4ff3-a813-7061b65aede9.jpg" },
+{ title: "Naruto", year: "2002", type: "Adventure Fantasy", url: "https://drive.google.com/drive/u/0/folders/1pdu3zkAPeF4o-tyPe-HsKhAiIZxBrqKS", image: "https://cdn.phototourl.com/free/2026-04-17-73f5df1d-f593-498e-96fd-29ce84cf25c2.jpg" },
+{ title: "Naruto Shippuden", year: "2007", type: "Adventure", url: "https://drive.google.com/drive/folders/1gvqxyzUzlH_xjNA13NCj0jmnc-KwqTfQ", image: "https://cdn.phototourl.com/free/2026-04-18-3df4db1b-e2ab-49fc-ac37-215dea48940f.png" },
+{ title: "Ranking Of Kings", year: "2021", type: "Animation", url: "https://drive.google.com/drive/u/0/folders/18OSebiverxEX2E4nhYL8oVh1vQxON0ep", image: "https://cdn.phototourl.com/free/2026-05-02-543e8faa-e855-4af4-8feb-429d46ce11e2.png" },
+{ title: "Avatar The Last Airbender", year: "2005", type: "Adventure", url: "https://drive.google.com/drive/u/0/folders/1OFWN8hASAuNWSn9mK2gANJ0PSQhvIA2r", image: "https://cdn.phototourl.com/free/2026-04-18-7f016128-5462-4d48-a19d-0b22135e331e.png" },
+{ title: "Made in Abyss", year: "2017", type: "Adventure", url: "https://drive.google.com/drive/folders/10x0NgiX_YTPgS0PHqd5W8bIN_QphQShl", image: "https://cdn.phototourl.com/free/2026-05-02-5899b0f5-8e8d-4232-a421-f1e5c1044bf7.png" },
+{ title: "Assassination Classroom", year: "2015", type: "Drama", url: "https://drive.google.com/drive/u/0/folders/1T-JYKyNVjYjwzEmTDr6kErnlSlnT-I2X", image: "https://cdn.phototourl.com/free/2026-04-18-32e2ddab-cbd2-4812-96fe-675decb7f2b7.png" },
+{ title: "Dragon Ball", year: "1986", type: "Adventure", url: "https://drive.google.com/drive/folders/1jW6XKw3G_50nY3rn7LZwQZkZkz92ZmIx", image: "https://cdn.phototourl.com/free/2026-04-18-25f4c2fc-9af9-4997-9723-464d85237430.png" },
+{ title: "Dragon Ball Z", year: "1989", type: "Adventure", url: "https://drive.google.com/drive/folders/1xaFComn4pBh0V0LmQqYtCRgLVbSfOwbE", image: "https://cdn.phototourl.com/free/2026-04-18-16d6727a-a238-4c21-a2fc-bccb357dc193.png" },
+{ title: "Zom 100", year: "2023", type: "Comedy Horror", url: "https://drive.google.com/drive/folders/1RYaF9hJPXnpqgz7ubmcyhu6SiVL2eTAI", image: "https://cdn.phototourl.com/free/2026-04-18-bb7cfb1d-fbe9-4f54-bb9a-148cda0dd4af.png" },
+{ title: "Haikyuu!!", year: "2014", type: "Drama", url: "https://drive.google.com/drive/folders/1Hz4qeiL_CKq_q4U2jZJ4xoZeSqMKOzbp", image: "https://cdn.phototourl.com/free/2026-04-18-9fb4c89f-24de-4798-b049-174964f00325.png" },
+{ title: "Kirby Right Back at Ya!", year: "2001", type: "Action", url: "https://drive.google.com/drive/u/0/folders/1LawIFQ48UCdP3-VUan7iWTm4l5EonWYw", image: "https://cdn.phototourl.com/free/2026-04-18-937335da-c000-4d8c-83a5-6d896d321095.png" },
+{ title: "Tokyo Ghoul", year: "2014", type: "Horror", url: "https://drive.google.com/drive/u/0/folders/1_62VQpKyYsI5vrDbZ2qUgJFAAkNwAum4", image: "https://cdn.phototourl.com/free/2026-05-01-a9082e78-ca75-4f84-a463-69e5b8e650a7.png" },
+{ title: "Fire Force", year: "2019", type: "Drama", url: "https://drive.google.com/drive/folders/1DdwOFAilBai2kDZVmRDCoNkqxTu6_E_5", image: "https://cdn.phototourl.com/free/2026-05-01-fb7b2f9b-3135-4dc2-8639-2311eee50a40.png" },
+{ title: "Toriko X One Piece Collaboration Special", year: "2026", type: "Action", url: "https://drive.google.com/drive/folders/1DRtfxvepXZiu53v2dlNrXGkz0Yw6oA4h", image: "https://cdn.phototourl.com/free/2026-05-01-c48eb742-504e-4a0c-895e-7ea0d5a2c0c4.png" },
+{ title: "Ace Attorney", year: "2016", type: "Comedy Drama", url: "https://drive.google.com/drive/u/0/folders/1oiTD4MSCwf8IEJdNk-mJGq_NZ5xRMkA1", image: "https://cdn.phototourl.com/free/2026-05-01-42445fe8-129e-4010-97ca-1ad7dcf0f546.png" },
 ];
 
 const grid = document.getElementById('grid');
@@ -305,7 +288,7 @@ function filterCards(query) {
       noRes.className = 'no-results';
       grid.appendChild(noRes);
     }
-    noRes.innerHTML = '<span>■</span>No shows found for "' + query.trim() + '"';
+    noRes.innerHTML = '<span>■</span>No animes found for "' + query.trim() + '"';
   } else if (noRes) {
     noRes.remove();
   }
