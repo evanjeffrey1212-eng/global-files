@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Media Library</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+  width: 100%;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar { display: none; }
+
+  body {
+    background: #0a0a0a;
+    color: #f0ede8;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    /* iOS safe area */
+    padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Search ── */
+  .search-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto 16px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  #search {
+    width: 100%;
+    height: 46px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    color: #f0ede8;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* must be 16px to prevent iOS zoom */
+    font-weight: 300;
+    padding: 0 14px 0 42px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  #search::placeholder { color: #888580; }
+  #search:focus {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  /* ── Grid — hard device tiers ── */
+  .grid {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    /* Default: desktop 6 col */
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  /* Tablet landscape */
+  @media (max-width: 1023px) {
+    .grid { grid-template-columns: repeat(5, 1fr); gap: 9px; }
+  }
+
+  /* Tablet portrait / large phone landscape */
+  @media (max-width: 767px) {
+    .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  }
+
+  /* Phone landscape / small tablet */
+  @media (max-width: 599px) {
+    .grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    body { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-top: 12px; }
+  }
+
+  /* Phone portrait — 2 columns */
+  @media (max-width: 430px) {
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    body { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  }
+
+  /* ── Cards ── */
+  .card-wrap {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    min-width: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .card-wrap.hidden { display: none; }
+
+  .card {
+    border-radius: 9px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 2 / 3;
+    width: 100%;
+    background: #1c1c1c;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: filter 0.25s ease;
+  }
+
+  .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card-wrap:hover .card { transform: scale(1.04); }
+    .card-wrap:hover .card img { filter: brightness(0.8); }
+    .card-wrap:hover .card-overlay { opacity: 1; }
+  }
+
+  @media (hover: none) {
+    .card-wrap:active .card img { filter: brightness(0.55); }
+    .card-wrap:active .card-overlay { opacity: 1; }
+  }
+
+  /* ── Labels ── */
+  .card-info { padding: 5px 1px 0; min-width: 0; }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: #f0ede8;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-meta {
+    font-size: 9px;
+    color: #888580;
+    font-weight: 400;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (min-width: 768px) {
+    .card-title { font-size: 13px; }
+    .card-meta  { font-size: 11px; }
+    .card-info  { padding: 6px 2px 0; }
+  }
+
+  /* ── No results ── */
+  .no-results {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 5rem 0;
+    color: #888580;
+    font-size: 15px;
+    font-weight: 300;
+  }
+  .no-results span { display: block; font-size: 36px; margin-bottom: 12px; opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<div class="search-wrap">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <circle cx="6.5" cy="6.5" r="5" stroke="white" stroke-width="1.5"/>
+    <path d="M10.5 10.5L14 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <input type="text" id="search" placeholder="Search all movies..." autocomplete="off" spellcheck="false">
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const MEDIA = [
+{ title: "Sniper The Last Stand", year: "2025", type: "Action", url: "https://drive.google.com/file/d/159k402C5RvOObYn-3pYz1CuRg-XNiZGr/view", image: "https://cdn.phototourl.com/free/2026-05-10-a9693e9b-3eb7-490f-a363-054dad8d92e9.jpg" },
+{ title: "Barnyard", year: "2006", type: "Comedy", url: "https://drive.google.com/file/d/1u9zilS2vBbK-h2p4BAFRpQY6gRto4Kue/view", image: "https://cdn.phototourl.com/free/2026-05-10-b43da5e6-d77a-4218-8351-04859454e278.png" },
+{ title: "Hacksaw Ridge", year: "2016", type: "War Drama", url: "https://drive.google.com/file/d/1HxcMAxJKPL8hJij_Ee66LklYrYMPHXpc/view", image: "https://cdn.phototourl.com/free/2026-05-09-8a5aedff-8cc1-4744-980f-d7907499b59f.jpg" },
+{ title: "Warfare", year: "2025", type: "War Action", url: "https://drive.google.com/file/d/1N_MowJKrUHo3_CN52LY7K7jPGBURw5ux/view", image: "https://cdn.phototourl.com/free/2026-05-09-d433cd71-4ce4-4c7a-a01d-20c00e000ab4.png" },
+{ title: "1917", year: "2019", type: "Action", url: "https://drive.google.com/file/d/1YHQTZH47tyWvhFt2Zi0Ee3Dd8QlaYwbg/view", image: "https://cdn.phototourl.com/free/2026-05-09-a08e5a16-5c14-45ab-88a9-fb9420bcdaa9.png" },
+{ title: "Platoon", year: "1986", type: "Action", url: "https://drive.google.com/file/d/13keb_slqtCgcMEROTu8b0DsMxIC03RdK/view", image: "https://cdn.phototourl.com/free/2026-05-09-6cd70ad9-6741-4eb5-8aaf-4a356b85411f.jpg" },
+{ title: "Iron Man 3", year: "2013", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1H0nZ4WOP6B8iWU8YoMjbnbzrlDJ1YSan/view", image: "https://cdn.phototourl.com/free/2026-05-09-b14a356a-a119-40d6-9b17-e78073708307.png" },
+{ title: "Iron Man 2", year: "2010", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1tESCAvTcUvbjyGB_x4bPahm9ZsBCs33u/view", image: "https://cdn.phototourl.com/free/2026-05-09-3ec6626c-ebd6-48c7-9125-d42076d5654a.png" },
+{ title: "Despicable Me", year: "2010", type: "Comedy", url: "https://drive.google.com/file/d/1KDDDkhqdiwnoXUw9aYc4WdBfprqPX6pE/view", image: "https://cdn.phototourl.com/free/2026-05-09-57a865d0-8adb-4983-a7db-3b25753ce64a.png" },
+{ title: "Despicable Me 2", year: "2013", type: "Comedy", url: "https://drive.google.com/file/d/1bTG8tnEKRvWZnnwNRrHSwOC028Rr_Mrg/view", image: "https://cdn.phototourl.com/free/2026-05-09-0572bee6-4287-480e-ab84-27e5dd21ffd8.png" },
+{ title: "Despicable Me 3", year: "2017", type: "Comedy", url: "https://drive.google.com/file/d/1W_Wr8yBmz_lTq3c80Vqj1ZySqXHiQ6mF/view", image: "https://cdn.phototourl.com/free/2026-05-09-ca1c9f4c-a800-48e7-9b48-fcfd4efde0e5.png" },
+{ title: "Despicable Me 4", year: "2024", type: "Comedy", url: "https://drive.google.com/file/d/1siki1wYP3LpfjFpUT8Z9lJuJzl7MdBhX/view?t=2", image: "https://cdn.phototourl.com/free/2026-05-09-18247aa7-961e-44fe-94c2-455816351a37.jpg" },
+{ title: "Minions The Rise Of Gru", year: "2022", type: "Comedy", url: "https://drive.google.com/file/d/1PUAJDEIDgsH_cLUWN2tgPdWAuINXQ9fm/view", image: "https://cdn.phototourl.com/free/2026-05-09-51c0bca1-6cbb-480c-86f5-d5c57dc1f2ca.png" },
+{ title: "Minions", year: "2015", type: "Comedy", url: "https://drive.google.com/file/d/1ZJWkqS6Y5XO6bRrgCH88rgQZR848Lr8V/view", image: "https://cdn.phototourl.com/free/2026-05-09-8fbe8896-f4de-4b63-bfdd-a12dc02d26b8.png" },
+{ title: "Apocalypse Z: The Beginning of the End", year: "2024", type: "Action Horror", url: "https://drive.google.com/file/d/1GusERaoP4GxoQuoxPtcNHAPyT816FwOD/view", image: "https://cdn.phototourl.com/free/2026-05-09-5cf6da71-894d-4acf-b5fb-8d95dc16ff82.png" },
+{ title: "Minions Holiday Special", year: "2020", type: "Holiday Comedy", url: "https://drive.google.com/file/d/1zFKXArAVk7j_yx2RdLFzrZdBckaH-uI0/view", image: "https://cdn.phototourl.com/free/2026-05-09-a670ab87-9b5d-46f9-94e8-37c9b8213a79.png" },
+{ title: "Black Panther", year: "2018", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1wdUOiz7tI3R5vTz779h7CesAW5h0kUh1/view", image: "https://cdn.phototourl.com/free/2026-05-09-473bfafd-b7b8-4297-af80-7e17c0f82938.png" },
+{ title: "Black Panther Wakanda Forever", year: "2022", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/198qUcefIK54KnZzxAx6_L8u7l37oCfhK/view", image: "https://cdn.phototourl.com/free/2026-05-09-e13aeb35-f33c-4d78-b903-454508f9d341.png" },
+{ title: "Captain America Brave New World", year: "2025", type: "Action", url: "https://drive.google.com/file/d/1iwnluIU4neLKqcJt4q5n2YhZLJbJbRkI/view", image: "https://cdn.phototourl.com/free/2026-05-09-6e698d02-b2f0-43b4-8731-e026d2036780.jpg" },
+{ title: "Shang-Chi and the Legend of the Ten Rings", year: "2021", type: "Action", url: "https://drive.google.com/file/d/1xBiVuAnW0hFxIhG3samjzJJ-czMAKxN0/view", image: "https://cdn.phototourl.com/free/2026-05-09-9a26f3ef-4949-4219-a808-0166d416d0c5.png" },
+{ title: "Captain America The Winter Soldier ", year: "2014", type: "Action", url: "https://drive.google.com/file/d/1sd8H5oqtZwgNj1x54L2RdDOXxgUP50Yx/view", image: "https://cdn.phototourl.com/free/2026-05-09-cda30bab-bd48-4033-a428-628f7cd3e8f1.png" },
+{ title: "Back To The Future Part 3", year: "1990", type: "Western", url: "https://drive.google.com/file/d/16A4hzHFTcNduq6F-u4zQw7iTha5aEKD-/view", image: "https://cdn.phototourl.com/free/2026-05-09-6a44d531-f8b1-4d78-8f8a-aaf0bea39a60.jpg" },
+{ title: "Back To The Future Part 2", year: "1989", type: "Sci-Fi", url: "https://drive.google.com/file/d/1vmA2LTkSzbtUJve8TTy2UVkPAfHMtGwK/view", image: "https://cdn.phototourl.com/free/2026-05-09-1c21beea-3a7e-46bb-b4a5-4eb1ad35a73c.png" },
+{ title: "Avengers Infinity War", year: "2018", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1VWLpj4G4CEgHnjpxfc67MrlEWu5pD75Y/view", image: "https://cdn.phototourl.com/free/2026-05-09-9d30e2d8-f794-4e9d-bc09-bba0ccc44ae6.jpg" },
+{ title: "Avengers Endgame", year: "2019", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1UsxNtlBxGFp955GwEB-s8wYJCA6bXt7e/view", image: "https://cdn.phototourl.com/free/2026-05-09-01bcf140-ec6b-468d-ad18-979e63b52f4c.jpg" },
+{ title: "The Menu", year: "2022", type: "Horror Comedy", url: "https://drive.google.com/file/d/14Audx3RqZPMTyLzErPzkKuCQPVWhTC0y/view", image: "https://cdn.phototourl.com/free/2026-05-09-c06bbf0a-5c9e-4afa-a644-885bf719ffc0.jpg" },
+{ title: "Ice Age The Meltdown", year: "2006", type: "Adventure", url: "https://drive.google.com/file/d/0B5GBDxHMg1PHbG1pNFV3ZXM2Ym8/view?resourcekey=0-xRpde3co_L2qC4Ek54nlhA", image: "https://cdn.phototourl.com/free/2026-05-07-66d97f76-fafc-4875-9d16-b3302028294f.png" },
+{ title: "High Forces", year: "2024", type: "Drama Adventure", url: "https://drive.google.com/file/d/1xREmxcmSX8pMxuWoEC8ZjH6AwQbIts1n/view", image: "https://cdn.phototourl.com/free/2026-05-07-f762db99-2b2d-4481-adde-8d1ab4da2779.jpg" },
+{ title: "Now You See Me", year: "2013", type: "Crime Thriller", url: "https://drive.google.com/file/d/1ezxSSMxfuWzcypxhVna2BK2ziZXAWHGh/view", image: "https://cdn.phototourl.com/free/2026-05-07-46a7055c-1bea-4956-ad79-38ea404aa139.png" },
+{ title: "Little Man", year: "2006", type: "Comedy", url: "https://drive.google.com/file/d/1ThLfKjFXZyyX0ME4WN8SnJGOSPswbkxg/view", image: "https://cdn.phototourl.com/free/2026-05-07-e26ce418-0efd-4d07-b766-c5bce9d6af71.jpg" },
+
+{ title: "Hunting Season", year: "2025", type: "Action Thriller", url: "https://drive.google.com/file/d/1e4mBkx_NTofy1nV7H6Wsnwoziox445ne/view", image: "https://cdn.phototourl.com/free/2026-05-04-01bd5d89-56ea-428c-bd2b-2d856392a1ea.jpg" },
+
+{ title: "Tron Ares", year: "2025", type: "Action Sci-Fi", url: "https://drive.google.com/file/d/1MnUvz4XFl9WNK4AD4QRNjkvSRhx6hXsp/view", image: "https://cdn.phototourl.com/free/2026-05-04-7652e836-89ce-4693-9393-ad7f64ff8a60.jpg" },
+
+{ title: "Eternals", year: "2021", type: "Action Fantasy", url: "https://drive.google.com/file/d/1G4C_sOWW3IEih7LVTGmeLpm9TaoVaQMq/view", image: "https://cdn.phototourl.com/free/2026-05-04-28c68a58-abfd-4217-8af7-37366da534dd.png" },
+{ title: "Novocaine", year: "2025", type: "Action Thriller", url: "https://drive.google.com/file/d/1hxffkmG2xIxMXE8-ap16hyprKo3x-86V/view?usp%3Ddrive_link", image: "https://cdn.phototourl.com/free/2026-05-04-d5696c6a-939e-48aa-83f8-b95d5768d099.png" },
+{ title: "Ghost Rider", year: "2007", type: "Action Fantasy", url: "https://drive.google.com/file/d/1-QiYxJYgk4gw8fRHez7gUWMS6zE7vG-u/view", image: "https://cdn.phototourl.com/free/2026-05-04-06283822-ad22-4425-b812-01791efd1113.jpg" },
+{ title: "Werewolves", year: "2024", type: "Horror", url: "https://drive.google.com/file/d/1ISYTbQADR-9A09knncZmZVlyNEzfalby/view?usp%3Ddrive_link", image: "https://cdn.phototourl.com/free/2026-05-04-ead8fd98-0f2a-46c4-9d0e-1e7653c7e2e3.png" },
+{ title: "Cars 1", year: "2006", type: "Comedy", url: "https://drive.google.com/file/d/1RoWQ2LZecPYvsZ48Sah7_xBvZzEHcXL1/view", image: "https://cdn.phototourl.com/free/2026-05-04-82d3e171-711e-4ba4-a0af-e1b821fdb050.png" },
+{ title: "Cars 2", year: "2011", type: "Action", url: "https://drive.google.com/file/d/1YinG1kmgSqWI5kQwfDsQO6vK1xzM6K7o/view", image: "https://cdn.phototourl.com/free/2026-05-04-be566c43-a61b-4fff-aefa-79ddc24ffdc9.png" },
+{ title: "Cars 3", year: "2017", type: "Family", url: "https://drive.google.com/file/d/1zGu4JvRmEG1B041H7DRBcdRGSgTdskPo/view", image: "https://cdn.phototourl.com/free/2026-05-04-bacc391d-eb70-4ff2-9888-9c1911980e07.png" },
+{ title: "Mufasa The Lion King", year: "2024", type: "Adventure/Musical", url: "https://drive.google.com/file/d/1uQXNlwz-_1PwGdnJqTGUswBhJWgH8zMP/view", image: "https://cdn.phototourl.com/free/2026-05-04-77d60094-85f0-4201-8407-357ff1c1199d.png" },
+{ title: "Predator Badlands", year: "2025", type: "Sci-Fi", url: "https://drive.google.com/file/d/1McJIylATyVjGaoMA6Fzu2aMrm3IL3MTp/view", image: "https://cdn.phototourl.com/free/2026-05-04-fe811a2c-9bf3-43a6-a1d2-a45f5c00c0ba.png" },
+{ title: "The Long Walk", year: "2025", type: "Horror", url: "https://drive.google.com/file/d/1RBLQ8r4Z4OOzu5u6me1k061ZtsQKtpaz/view", image: "https://cdn.phototourl.com/free/2026-05-04-effb2334-db00-4e4a-892f-2d20b10b0086.png" },
+{ title: "Good Boys", year: "2019", type: "Comedy", url: "https://drive.google.com/file/d/1mH844HtXq4Uj1cP94fVgVdx_XCv9mtVk/view", image: "https://cdn.phototourl.com/free/2026-05-04-7d0f2dbd-6007-4ca7-b0e7-aaa1d38a0bf7.png" },
+{ title: "Saving Private Ryan", year: "1998", type: "Action", url: "https://drive.google.com/file/d/1SrStdaR89G-A1Vp6bcKEZ90z2mleWIg0/view", image: "https://cdn.phototourl.com/free/2026-05-04-327f176a-8429-4196-89f3-c60db268ea0b.png" },
+{ title: "Forrest Gump", year: "1994", type: "Comedy Romance", url: "https://drive.google.com/file/d/0B-uFeCO4yCFIa3hNRDc5eVlBSjQ/view?t=6&resourcekey=0-rOslYKb17fIDWtuiy8P2ag", image: "https://cdn.phototourl.com/free/2026-05-02-3f84f08e-6731-4e31-8ea6-2e71b760fba7.png" },
+{ title: "Richie Rich", year: "1994", type: "Comedy", url: "https://drive.google.com/file/d/1VcKvWfhdDnVeMoAKnnijNHG0BeAQreRk/view?t=633.464", image: "https://cdn.phototourl.com/free/2026-05-02-e07b7f12-70d6-4a43-a509-146b5e19b1bb.png" },
+{ title: "Madly Madagascar", year: "2013", type: "Comedy", url: "https://drive.google.com/file/d/1kgjMwQAMhczUrYKoYBDoe_tt11K9_Bki/view", image: "https://cdn.phototourl.com/free/2026-05-01-b6c1dc04-a263-4267-91d0-7a4d34d3bbad.png" },
+{ title: "Friday the 13th", year: "1980", type: "Horror", url: "https://drive.google.com/file/d/1Tu0WxRUC-gADzYFEnSvudZ3MZ7Y735jH/view", image: "https://cdn.phototourl.com/free/2026-05-01-3f621c92-d404-451d-8e11-d66311a36a2b.jpg" },
+
+{ title: "Captain Underpants", year: "2017", type: "Comedy", url: "https://drive.google.com/file/d/1jNEkFKuDGypWbCGeV-mPl6YXO8s87kZ-/view", image: "https://cdn.phototourl.com/free/2026-04-12-717a3751-efaf-425d-a9c6-20acf91e750d.png" },
+
+{ title: "Star Wars The Last Jedi", year: "2017", type: "Sci Fi", url: "https://drive.google.com/file/d/1vCdep3QXu8GE9IaNUdVmCGLiG24kFrWb/view", image: "https://cdn.phototourl.com/free/2026-04-27-3fce2676-949d-4806-9913-29a505d50e3f.jpg" },
+
+{ title: "Star Wars The Empire Strikes Back", year: "1980", type: "Sci Fi", url: "https://drive.google.com/file/d/1q0Jof59Il_So2z5Q38ANn55qB2GCpOx3/view?usp=drive_link", image: "https://cdn.phototourl.com/free/2026-04-27-4551e9d4-b4a8-4e6d-8fba-8e4a119a86f5.jpg" },
+
+{ title: "Star Wars The Clone Wars", year: "2008", type: "Sci Fi", url: "https://drive.google.com/file/d/16dO2t6nMYzRFTKGBVByMPYtru6kwix7H/view?usp=drive_link", image: "https://cdn.phototourl.com/free/2026-04-27-232afa4c-a307-4a7f-b9e3-1e79d71d884e.jpg" },
+
+{ title: "Star Wars The Rise Of Skywalker", year: "2019", type: "Sci Fi", url: "https://drive.google.com/file/d/1viDV-Gu6yGHOpyaDefPH3Id9fXSHuTsi/view?usp=drive_link", image: "https://cdn.phototourl.com/free/2026-04-27-c95cdecd-c66d-4661-b816-ce5186ca6b09.jpg" },
+
+{ title: "A Goofy Movie", year: "1995", type: "Comedy", url: "https://drive.google.com/file/d/1ify_EMaQW-ZAn2F0STztn2AGU-jE7aHL/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-27-e9322dba-60cf-4a68-b326-cdfab51ff719.png" },
+
+{ title: "Deadpool", year: "2016", type: "Action Comedy", url: "https://drive.google.com/file/d/1XUjU4fhDH7qpPEg_me8vlMba1uelRIwj/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-27-dcde2efe-b2c4-442c-91da-4c9d7049fabf.jpg" },
+{ title: "Deadpool 2", year: "2018", type: "Action Comedy", url: "https://drive.google.com/file/d/1wcE3D19t54BnWtLNl5cruklfPVPh92nY/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-27-38b4caa7-0af2-4b32-9b6d-e4b126258924.jpg" },
+{ title: "Frozen", year: "2013", type: "Musical", url: "https://drive.google.com/file/d/1XIuN4Zp35mW0iN4p0ME5APxH18-6Zqft/view?usp=drive_link", image: "https://cdn.phototourl.com/member/2026-04-21-35881cbf-2fb1-4ce4-8398-f63d9cb15137.jpg" },
+{ title: "Frozen 2", year: "2019", type: "Fantasy", url: "https://drive.google.com/file/d/1hpUpKEdeT9ta-8FjSpMUAXw17E-8uwIY/view?usp=drive_link", image: "https://cdn.phototourl.com/member/2026-04-21-93d7c880-47bb-484c-8694-688798e2bef9.jpg" },
+{ title: "Chicken Little", year: "2005", type: "Comedy", url: "https://drive.google.com/file/d/1cS2IkptbRmbiePwPtH5d-xxdjHqHm5v8/view", image: "https://cdn.phototourl.com/free/2026-04-12-095c082f-90c9-4f5d-9ac8-40d650656765.png" },
+{ title: "Hairspray", year: "2007", type: "Musical Comedy", url: "https://drive.google.com/file/d/12X1rfnx0NrQUAhDRLRQxKdaqvAi_LqJa/view", image: "https://cdn.phototourl.com/free/2026-04-20-57af177a-80e5-4847-b484-1fe6c52a4565.png" },
+{ title: "The Mask", year: "1994", type: "Comedy Action", url: "https://drive.google.com/file/d/1ExVaSRcps4wvIcRczczvBPSGYxUkfvXE/view", image: "https://upload.wikimedia.org/wikipedia/en/thumb/4/4b/The_Mask_%28film%29_poster.jpg/250px-The_Mask_%28film%29_poster.jpg" },
+{ title: "Childs Play", year: "1988", type: "Horror", url: "https://drive.google.com/file/d/1FPO2K8Oqb1O3qm1qb57NhZHhaGCvQjAz/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-27-bb3eec7c-234b-4062-94b8-14d5f62e01f9.jpg" },
+{ title: "Sing", year: "2016", type: "Comedy", url: "https://drive.google.com/file/d/1-J7v3NOfQxngx50U66dELoa5P17m2xDP/view", image: "https://cdn.phototourl.com/free/2026-04-11-8c9dd256-3585-4353-b56a-e1a406a492ee.png" },
+{ title: "Encanto", year: "2021", type: "Musical", url: "https://drive.google.com/file/d/17mETnDL0Z4M-ke4aw9Oouuf9w8xQkfIb/view", image: "https://cdn.phototourl.com/free/2026-04-11-06145326-8315-4675-bcaa-600a0c2e73ec.png" },
+{ title: "8 Mile", year: "2002", type: "Drama", url: "https://drive.google.com/file/d/13KF2oQ-b1WRvbjL0vMMAMlI0Vj8TYBuM/view", image: "https://cdn.phototourl.com/free/2026-04-11-1810ac4f-1e99-4890-85d3-8532307167f6.png" },
+{ title: "The Good Dinosaur", year: "2015", type: "Adventure", url: "https://drive.google.com/file/d/1vELzmz9u6vQ18YtMipK9nSWJhZLP6KaH/view", image: "https://cdn.phototourl.com/free/2026-04-16-3409145a-213c-417b-ba2d-83a639427860.png" },
+{ title: "Luca", year: "2021", type: "Fantasy", url: "https://drive.google.com/file/d/1VcUlwoH5kBsHK6vYEMYMJuhpYgTCng20/view", image: "https://cdn.phototourl.com/free/2026-04-16-ffbc4866-dfc2-4740-9ce5-822c12a6b578.png" },
+{ title: "The Guardians Of The Galaxy Holiday Special", year: "2022", type: "Sci Fi Action", url: "https://drive.google.com/file/d/1lWeO09nNvc1beWyYUJJRDRnJ7p4xtmtk/view", image: "https://cdn.phototourl.com/free/2026-04-16-d938104a-d30e-4fe8-bb44-1822dfdf68fd.png" },
+{ title: "A Dogs Purpose", year: "2017", type: "Comedy", url: "https://drive.google.com/file/d/0B-uFeCO4yCFISTFmNlE3akNDbU0/view?resourcekey=0-RNIEk2RiGAR76Qv_ACNU8g", image: "https://cdn.phototourl.com/free/2026-04-16-d933f23e-21b0-4641-ba3e-2dce0caa2e4d.png" },
+{ title: "Iron Man", year: "2008", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1QOIBXMPZk86AVo0jI-zXYAuJGiWRUnNg/view", image: "https://cdn.phototourl.com/free/2026-04-16-c0927b2a-6938-42de-867a-0bac363ac4aa.png" },
+{ title: "Grown Ups", year: "2010", type: "Drama Comedy", url: "https://drive.google.com/file/d/1HmS-RayjDvJgpxcIl0tFrS2aWRhgALXv/view", image: "https://cdn.phototourl.com/free/2026-05-07-51666611-804b-4ee7-8e8f-4c659037a976.jpg" },
+{ title: "Free Guy", year: "2021", type: "Action Comedy", url: "https://drive.google.com/file/d/1VKxhPEp2ATQVqwmX9q2sedyHFer4-Riz/view", image: "https://cdn.phototourl.com/free/2026-04-19-93fb9231-d34d-475c-88a3-391c7db549c0.png" },
+{ title: "Back To The Future", year: "1985", type: "Sci Fi", url: "https://drive.google.com/file/d/1ZwP0FLdFdAoeskqGvQYX5CwqEeSFWS1G/view", image: "https://cdn.phototourl.com/free/2026-04-19-a516267a-724a-45ac-8e82-00a72189422f.png" },
+{ title: "Home Alone 2", year: "1992", type: "Comedy", url: "https://drive.google.com/file/d/1sH3RXs-OiYr7ROKCtmB5miWVpX9G2b4Q/view", image: "https://cdn.phototourl.com/free/2026-04-19-2091f962-91f5-4ff6-acf6-0de769de018a.png" },
+{ title: "Mulan", year: "1998", type: "Musical", url: "https://drive.google.com/file/d/1ye-qQ6ZmBW98Xab4sjDJw1oxmUw_piBz/view", image: "https://cdn.phototourl.com/free/2026-04-19-7e8ae482-ad8f-4caf-8226-d19cda5c3c2b.png" },
+{ title: "Coraline", year: "2009", type: "Horror", url: "https://drive.google.com/file/d/1TFiL16cNmQmG5pSi-s6od4xgymFqK1kJ/view", image: "https://cdn.phototourl.com/free/2026-04-19-1f90d6da-8cb2-4d3a-911a-06c1c9544bd3.png" },
+{ title: "Five Nights At Freddys", year: "2023", type: "Horror", url: "https://drive.google.com/file/d/1OyO1OdhtfwR883Uvi0QPP5iooGcxTVSY/view", image: "https://cdn.phototourl.com/free/2026-04-16-df99c3d5-4525-46f9-b665-f86203f0ae5a.png" },
+{ title: "Creed", year: "2015", type: "Action", url: "https://drive.google.com/file/d/1w9nVBGOKDax-xCr-caqekW4hcjRUQWZA/view", image: "https://upload.wikimedia.org/wikipedia/en/2/24/Creed_poster.jpg" },
+{ title: "Creed 2", year: "2018", type: "Action", url: "https://drive.google.com/file/d/1KnW-KW6LV-fH0S0R_2sbsEKkKhSFK-OP/view", image: "https://upload.wikimedia.org/wikipedia/en/9/90/Creed_II_poster.png" },
+{ title: "Creed 3", year: "2023", type: "Action", url: "https://drive.google.com/file/d/1j8pGyNx9PHk_Gicns9JlDaX82qBIi1_m/view", image: "https://upload.wikimedia.org/wikipedia/en/c/c2/Creed_III_poster.png" },
+{ title: "Good Burger", year: "1997", type: "Comedy", url: "https://drive.google.com/file/d/1jucPocCb8aq23Bh-GFLcniAk-k5UU-wC/view", image: "https://upload.wikimedia.org/wikipedia/en/c/c0/Good_Burger_film_poster.jpg" },
+{ title: "Good Burger 2", year: "2023", type: "Comedy", url: "https://drive.google.com/file/d/1TOjPbqSF5UqnPrn1zFqEWvkUeBNiyMax/view", image: "https://upload.wikimedia.org/wikipedia/en/1/13/Good_Burger_2_Paramount_Plus_Poster.jpg" },
+{ title: "The Garfield Movie", year: "2024", type: "Comedy", url: "https://drive.google.com/file/d/1g_YZyeIbjua21PNL4ZLfeIzJx-givpPE/view", image: "https://upload.wikimedia.org/wikipedia/en/9/91/The_Garfield_Movie_2024_poster.jpg" },
+{ title: "The Lego Ninjago Movie", year: "2017", type: "Comedy", url: "https://drive.google.com/file/d/1wQIj-ZVsTxgTktceYFgyFei_XX-eXAt-/view", image: "https://upload.wikimedia.org/wikipedia/en/9/9f/The_Lego_Ninjago_Movie.jpg" },
+{ title: "Wish", year: "2023", type: "Fantasy", url: "https://drive.google.com/file/d/1KOmgE1jMV0jT2QkWFFd3ieEzwf4GbVOw/view", image: "https://upload.wikimedia.org/wikipedia/en/d/de/WishMoviePoster.jpg" },
+{ title: "The Peanuts Movie", year: "2015", type: "Comedy", url: "https://drive.google.com/file/d/16Ze08q_XKmANPNYreDVZnEbZEZTSLwOa/view", image: "https://upload.wikimedia.org/wikipedia/en/7/77/Peanuts_2015.jpg" },
+{ title: "Venom", year: "2018", type: "Sci Fi Action", url: "https://drive.google.com/file/d/1iRN197XeJCQnZGza599ZTXsayEG1mdRB/view", image: "https://upload.wikimedia.org/wikipedia/en/1/10/Venom_%282018_film%29_poster.png" },
+{ title: "Venom Let Their Be Carnage", year: "2021", type: "Sci Fi Action", url: "https://drive.google.com/file/d/1N6kL0SF4qR6wFpwfGIZUZjFnz3lQDGGz/view", image: "https://upload.wikimedia.org/wikipedia/en/thumb/a/a7/Venom_Let_There_Be_Carnage_poster.jpg/250px-Venom_Let_There_Be_Carnage_poster.jpg" },
+{ title: "Major Payne", year: "1995", type: "Comedy", url: "https://drive.google.com/file/d/1HOBF8qYxnEXjbjouFThL4B3ttoBiNUOY/view", image: "https://cdn.phototourl.com/free/2026-04-10-914b9af3-ef86-4dee-84d8-fea59890f466.png" },
+{ title: "Mortal Kombat", year: "1995", type: "Action", url: "https://drive.google.com/file/d/1temXH9CFHCd7gjIsu8TMCFiqxMy8jXfj/view", image: "https://cdn.phototourl.com/free/2026-04-10-8cb35cd3-bbc4-430e-8dae-36e2b531c138.png" },
+{ title: "The Flash", year: "2023", type: "Action", url: "https://drive.google.com/file/d/1ApUHMkZM-j3vM-rSG-kvjk3KuvJNAsXp/view", image: "https://cdn.phototourl.com/free/2026-04-25-36ecd4bd-d466-4831-8d9b-4a51f61e1d01.png" },
+{ title: "Hamilton", year: "2020", type: "Musical", url: "https://drive.google.com/file/d/1c47Nko9vdJfe-KKF4nkpd-U-aMT_ZaQe/view", image: "https://upload.wikimedia.org/wikipedia/en/thumb/c/c3/Hamilton_Disney%2B_poster_2020.jpg/250px-Hamilton_Disney%2B_poster_2020.jpg" },
+{ title: "Terrifier", year: "2018", type: "Horror", url: "https://drive.google.com/file/d/18N4_ou-sji02HD3dOFNP0aDqCBleLr7G/view", image: "https://cdn.phototourl.com/free/2026-04-20-f4ac0377-053b-4342-b4ca-77df108fc4a8.jpg" },
+{ title: "Terrifier 2", year: "2022", type: "Horror", url: "https://drive.google.com/file/d/1_Jjo7rOcCkYt3UryVkV2XvTfrL4QvHTE/view", image: "https://cdn.phototourl.com/free/2026-04-24-d6194581-3d4b-4db7-b62b-130225aeee1f.jpg" },
+{ title: "Terrifier 3", year: "2024", type: "Horror", url: "https://drive.google.com/file/d/1C0yGUsqW5IT81q8PAebnlw0Ha6oHWYV4/view?pli=1", image: "https://cdn.phototourl.com/free/2026-04-24-c9b52aa0-f085-4403-9b2b-fff3b2a11a81.webp" },
+{ title: "Shazam", year: "2019", type: "Action Comedy", url: "https://drive.google.com/file/d/111DMVHuhGLLFunQ1ixi_OG8ui0ckXbfU/view", image: "https://upload.wikimedia.org/wikipedia/en/c/c2/Shazam%21_%28film%29_poster.jpg" },
+{ title: "Elf", year: "2003", type: "Comedy", url: "https://drive.google.com/file/d/1-cJP_6uvuboesHkiYPgfIg49eKvsBsF0/view", image: "https://upload.wikimedia.org/wikipedia/en/d/df/Elf_movie.jpg" },
+{ title: "Rugrats", year: "1998", type: "Adventure", url: "https://drive.google.com/file/d/157WJal3P65gdyFlDbP4DcRfNku-Oursg/view", image: "https://upload.wikimedia.org/wikipedia/en/5/51/This_is_the_Theatrical_Release_Poster_of_the_Rugrats_Movie.jpg" },
+{ title: "The Sandlot", year: "1993", type: "Comedy", url: "https://drive.google.com/file/d/1G9qRpMiBq5HD-vqKQs9sq8csZCFccaiD/view", image: "https://upload.wikimedia.org/wikipedia/en/d/d4/Sandlot_poster.jpg" },
+{ title: "Detective Pikachu", year: "2019", type: "Fantasy", url: "https://drive.google.com/file/d/1q5wcbuy536XQKTBAF7ImApMAlNMVHM5T/view", image: "https://upload.wikimedia.org/wikipedia/en/e/e5/Pok%C3%A9mon_Detective_Pikachu_teaser_poster.jpg" },
+{ title: "Hercules", year: "1997", type: "Musical", url: "https://drive.google.com/file/d/1sXad7VvXVn7qIilwdspq5RtjmInpa7mQ/view", image: "https://upload.wikimedia.org/wikipedia/en/6/65/Hercules_%281997_film%29_poster.jpg" },
+{ title: "Men In Black", year: "1997", type: "Sci Fi Action", url: "https://drive.google.com/file/d/1lKwqLzxgLyJi0BhN9Lc8HdHMM7LMVb5V/view", image: "https://upload.wikimedia.org/wikipedia/en/thumb/f/fb/Men_in_Black_Poster.jpg/250px-Men_in_Black_Poster.jpg" },
+{ title: "Deadpool And Wolverine", year: "2024", type: "Action Comedy", url: "https://drive.google.com/file/d/1aBzsoTJAjhZeFFDkIV2SN7p7ZHagUEDc/view?t=1", image: "https://upload.wikimedia.org/wikipedia/en/4/4c/Deadpool_%26_Wolverine_poster.jpg" },
+{ title: "Napoleon", year: "2023", type: "Action", url: "https://drive.google.com/file/d/1wBXYvvXlGsI7g6h-cMMZQ1YhoJ4SxHpl/view", image: "https://upload.wikimedia.org/wikipedia/en/2/2e/Napoleon_Film_poster.jpg" },
+{ title: "John Wick Chapter 1", year: "2014", type: "Action Thriller", url: "https://drive.google.com/file/d/11TCtroXQRdFUNbTv7NNkD4hf9E7xO6_w/view", image: "https://upload.wikimedia.org/wikipedia/en/9/98/John_Wick_TeaserPoster.jpg" },
+{ title: "John Wick Chapter 2", year: "2017", type: "Action Thriller", url: "https://drive.google.com/file/d/1OEb1csWFP1nYYXWZ4jylTGFIty6zCHd7/view", image: "https://upload.wikimedia.org/wikipedia/en/3/31/John_Wick_Chapter_Two.png" },
+{ title: "John Wick Chapter 3", year: "2019", type: "Action Thriller", url: "https://drive.google.com/file/d/1kB4qq28Hv-NLflX57GGuiPo0uKp4B5XC/view", image: "https://upload.wikimedia.org/wikipedia/en/9/94/John_Wick_Chapter_3_Parabellum.png" },
+{ title: "John Wick Chapter 4", year: "2023", type: "Action Thriller", url: "https://drive.google.com/file/d/1Jn_Ti-Btchkg5PcEVuHJ8lsQlqwZBwxs/view", image: "https://upload.wikimedia.org/wikipedia/tr/a/a0/John_Wick_4_afi%C5%9Fi.jpg" },
+{ title: "Inside Out", year: "2015", type: "Comedy", url: "https://drive.google.com/file/d/1mDan3YLOKzkgfJQ1JCD3T6jXSY_Xu6wd/view", image: "https://upload.wikimedia.org/wikipedia/en/0/0a/Inside_Out_%282015_film%29_poster.jpg" },
+{ title: "Inside Out 2", year: "2024", type: "Comedy", url: "https://drive.google.com/file/d/148ae2JtLzIZwy-AKjtRgLZPNf3vEmQOE/view?usp=drivesdk", image: "https://upload.wikimedia.org/wikipedia/en/thumb/f/f7/Inside_Out_2_poster.jpg/250px-Inside_Out_2_poster.jpg" },
+{ title: "Jurassic Park", year: "1993", type: "Adventure Sci Fi", url: "https://drive.google.com/file/d/1QGXy2lJU4B0z4s7zPSOLizN8jMHfnZQm/view?usp=drivesdk", image: "https://upload.wikimedia.org/wikipedia/en/e/e7/Jurassic_Park_poster.jpg" },
+{ title: "Karate Kid", year: "1984", type: "Action", url: "https://drive.google.com/file/d/1tMJAooF8bG9ghav9CU4GPYF3t07ySMXL/view?usp=drivesdk", image: "https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/Karate_kid.jpg/250px-Karate_kid.jpg" },
+{ title: "Coco", year: "2017", type: "Fantasy", url: "https://drive.google.com/file/d/194M4dGCwh1hTxVM1-_axnLSdt4trnbK2/view?usp=drivesdk", image: "https://upload.wikimedia.org/wikipedia/en/9/98/Coco_%282017_film%29_poster.jpg" },
+{ title: "A Bugs Life", year: "1998", type: "Comedy", url: "https://drive.google.com/file/d/1AIq4OqiMWiY9zZSayF5VID7pfTwSH6BM/view?usp=drivesdk", image: "https://upload.wikimedia.org/wikipedia/en/c/cc/A_Bug%27s_Life.jpg" },
+{ title: "Indiana Jones and The Dial of Destiny", year: "2023", type: "Action Adventure", url: "https://drive.google.com/file/d/1BuNmXFmhFBoSKvcnbi5W1_hQkVLTrzwu/view", image: "https://upload.wikimedia.org/wikipedia/en/8/8c/Indiana_Jones_and_the_Last_Crusade.png" },
+{ title: "Teenage Mutant Ninja Turtles", year: "2007", type: "Action", url: "https://drive.google.com/file/d/18iqYAOVbRHOT7jzJ3sqlyxi8RS5AH5sM/view", image: "https://upload.wikimedia.org/wikipedia/en/5/5b/TMNTposter.jpg" },
+{ title: "Spiderman", year: "2002", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1sqWGrmbGc5lBmoFbtfMSIaqb60eXppvF/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-cb0ba8b1-f016-4e04-981f-b39c98f277d5.jpg" },
+{ title: "Spiderman 2", year: "2004", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1yV7ZmEkfOVOLdV51wN6vSeDf3_tQqBvf/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-75823441-c25a-4a28-8f66-ba2e9803d9a4.jpg" },
+{ title: "Spiderman 3", year: "2007", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1ExTfRPC3YGmCSg8W2uFSYkUMw7a1vcTR/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-5277c423-3b9c-425d-9020-795ca6f07c12.jpg" },
+{ title: "Spiderman Homecoming", year: "2017", type: "Action Fantasy", url: "https://drive.google.com/file/d/1jGHx1i3EqHKmQmE42APmxUk4bYHrINQ_/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-2949f1cc-809c-454d-898d-08c4d3c48ee8.webp" },
+{ title: "Spiderman Far From Home", year: "2019", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1vPNUTkubVVmguVfwstRQm5xgbkRRii6z/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-571f32c4-c990-47a2-9fc4-640e556238f9.jpg" },
+{ title: "Spiderman No Way Home", year: "2021", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1mUF4PcT0_ZKofV0KHHdjxgTQdhF2BliQ/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-6d3b3036-c1e6-4aa5-a52e-fd2d8f19af15.jpg" },
+{ title: "Spiderman Into The Spider Verse", year: "2018", type: "Action", url: "https://drive.google.com/file/d/1V3Bq0lrDQUxJay5DDs3gK69ZvRNb1j2u/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-1fa8d57e-1f61-4072-9952-3daf907797b3.jpg" },
+{ title: "Spiderman Across The Spider Verse", year: "2023", type: "Action", url: "https://drive.google.com/file/d/1Sd1l_LhKRp_2OE5gRJJyPubnZjJccLgQ/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-3c276278-43c6-48f7-9e62-c2d3abe178bf.jpg" },
+{ title: "The Amazing Spider Man", year: "2012", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1Xf8xZcY3kneGFln8NPsQMt7CLtmGhEeD/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-7f3e381f-ef39-4dfd-8194-510dce9dce96.jpg" },
+{ title: "The Amazing Spider Man 2", year: "2014", type: "Action Sci Fi", url: "https://drive.google.com/file/d/1hnYa-Pkxqu6Qhhp56QXE34Rnctia_3yw/view?usp=drivesdk", image: "https://cdn.phototourl.com/free/2026-04-11-cd8e435f-7c7a-46ab-a108-df2b53bce32e.jpg" },
+{ title: "The Addams Family", year: "1991", type: "Comedy", url: "https://drive.google.com/file/d/19ZYLs_076nTJtl7bEUtkwpfbwwj-GevJ/view", image: "https://cdn.phototourl.com/free/2026-04-11-8051ac6c-7d21-4ada-90ba-4a3da3b7848a.png" },
+{ title: "The Polar Express", year: "2004", type: "Adventure", url: "https://drive.google.com/file/d/19KYYKqlEQyEuUTUQv32U53WoIDvKTRrx/view", image: "https://cdn.phototourl.com/free/2026-04-11-89645131-a9d4-4f8a-ae3a-f9d30c8cf424.png" },
+{ title: "American Psycho", year: "2000", type: "Thriller", url: "https://drive.google.com/file/d/1wSrQaIbtaTYn9wvwWmLK3dn_FUxhf3_2/view", image: "https://cdn.phototourl.com/free/2026-04-12-fbe7967c-a8e0-403b-a7f9-fa295797ab7f.png" },
+{ title: "Boyz N The Hood", year: "1991", type: "Thriller", url: "https://drive.google.com/file/d/1fCv2dJuy8k_NQWAxbNRxqW0_zKetF-uy/view", image: "https://upload.wikimedia.org/wikipedia/en/c/c3/Boyz_n_the_hood_poster.jpg" },
+{ title: "Scarface", year: "1983", type: "Action", url: "https://drive.google.com/file/d/1Liqbc59-fk-KpCUl6qkCIZSjtoyCzN-w/view", image: "https://cdn.phototourl.com/free/2026-04-25-51b9fa69-452f-4f3c-be25-9c044b8400c2.png" },
+{ title: "Ford vs Ferrari", year: "2019", type: "Sport Action", url: "https://drive.google.com/file/d/1NPB0oCsIuiPAc471b_XOGDnchbCZ72yh/view", image: "https://cdn.phototourl.com/member/2026-04-26-4e34c222-4ec0-4ab2-bd66-b247d625c63e.jpg" },
+{ title: "Ratatouille", year: "2007", type: "Comedy", url: "https://drive.google.com/file/d/145xYJwERUry_Zv7ALdW68UM578CXzq4V/view", image: "https://upload.wikimedia.org/wikipedia/en/5/50/RatatouillePoster.jpg" },
+{ title: "The Super Mario Bros Movie", year: "2023", type: "Comedy", url: "https://drive.google.com/file/d/1OsyF2LKJqjtv0b2Xd9GWOLcYkzny3VZo/view", image: "https://upload.wikimedia.org/wikipedia/en/4/44/The_Super_Mario_Bros._Movie_poster.jpg" },
+{ title: "Dog Man", year: "2025", type: "Comedy Action", url: "https://drive.google.com/file/d/1aXHiOSQjs7rCj933p22WnVSHOsVnv7IB/view?t=2411", image: "https://upload.wikimedia.org/wikipedia/lv/6/67/Dog_Man_film_poster.jpg" },
+{ title: "The Truman Show", year: "1998", type: "Drama Sci Fi", url: "https://drive.google.com/file/d/1VXf3yS74swsu20oWAWMvYdHSueP1aRm7/view", image: "https://cdn.phototourl.com/free/2026-04-19-c9219b31-b8b9-4578-9efc-2a2963c428dd.png" },
+{ title: "Turning Red", year: "2022", type: "Comedy", url: "https://drive.google.com/file/d/1joF2I_zdjepCD9ukmjV672HTICUfp4tO/view", image: "https://cdn.phototourl.com/free/2026-04-19-199f2de0-4db6-426b-ae59-227315c9e688.png" },
+{ title: "Zootopia", year: "2016", type: "Comedy", url: "https://drive.google.com/file/d/16pTCZ70BoJaKkzdcNDJdiIXiscnvbLtd/view", image: "https://cdn.phototourl.com/free/2026-04-19-6d46544d-312c-4465-9f41-aa059df61595.png" },
+{ title: "Zootopia 2", year: "2025", type: "Comedy", url: "https://drive.google.com/file/d/10lys4xAmzALt_F081ej_9oP3i7Lm1Qgq/view", image: "https://cdn.phototourl.com/free/2026-04-19-b6e98735-0e66-4c44-92ed-88ceec420d13.png" },
+{ title: "The Grinch", year: "2018", type: "Holiday Comedy", url: "https://drive.google.com/file/d/1GHD6UHmzHwpCf-YRswqnYw0zegaeRbrZ/view?t=2201", image: "https://cdn.phototourl.com/free/2026-04-25-37456726-cb23-4e1a-9bea-eb2a8f2dec28.png" },
+{ title: "The Super Mario Galaxy Movie", year: "2026", type: "Adventure", url: "https://drive.google.com/file/d/1wThJWyfKo3rKu0iZ3orn8XryPMfYeL5K/view", image: "https://cdn.phototourl.com/free/2026-04-19-5a35ce9f-a3ea-46e7-95b3-ba17172cee76.png" },
+{ title: "Beetlejuice", year: "2024", type: "Horror Comedy", url: "https://drive.google.com/file/d/1OsCtW4NUV94utDNxmFejUFoH6euf8Ind/view", image: "https://cdn.phototourl.com/free/2026-04-19-898d47ae-1f20-4460-b54f-f15e7fde7fca.png" },
+{ title: "Clika", year: "2026", type: "Drama", url: "https://drive.google.com/file/d/1MenI9CyCqWsxQuz9TyzjD-9OTLMMNrRU/view", image: "https://cdn.phototourl.com/free/2026-04-19-0976152e-448c-45be-a44d-bf11e8aebb9a.png" },
+{ title: "Elemental", year: "2023", type: "Romamce", url: "https://drive.google.com/file/d/1yblYpS-_kvX6GMWy8Ksgn9yAReHPdpLv/view", image: "https://cdn.phototourl.com/free/2026-04-19-94371db3-d071-4e8a-8e41-234b373e0523.png" },
+{ title: "Bee Movie", year: "2007", type: "Comedy", url: "https://drive.google.com/file/d/1IuwCkN-QY-y--RCNay1sJC-WJQtVBvvL/view", image: "https://cdn.phototourl.com/free/2026-04-19-40d2d2ce-32af-4a25-ad02-93a00441de08.png" },
+{ title: "The Simpsons Movie", year: "2007", type: "Comedy", url: "https://drive.google.com/file/d/1bh14OKHF2j9FQ_ccvNluYfgGGH5fPB17/view", image: "https://upload.wikimedia.org/wikipedia/en/d/d5/The_Simpsons_Movie_%282007%29.png" },
+{ title: "Pixels", year: "2015", type: "Sci Fi Comedy", url: "https://drive.google.com/file/d/1l318XGg-bFj0NuMDPIiioVO5cbg51hO0/view", image: "https://upload.wikimedia.org/wikipedia/en/f/f0/PixelsOfficialPoster.jpg" },
+{ title: "Goat", year: "2026", type: "Sport Comedy", url: "https://drive.google.com/file/d/1ejFJmseRX08D8AW4AchpuYzl5rsJK22t/view", image: "https://cdn.phototourl.com/free/2026-04-19-82f46043-f5e2-4956-b092-7e6f8e458565.png" },
+{ title: "Slenderman", year: "2018", type: "Horror", url: "https://drive.google.com/file/d/1ViFrWDfc9QNR1zKomCjXwTFOBbQYOANT/view", image: "https://cdn.phototourl.com/free/2026-04-19-c5b3404a-f358-41f4-ad9c-51f59943673a.png" },
+{ title: "Ron’s Gone Wrong", year: "2021", type: "Adventure", url: "https://drive.google.com/file/d/1nKl-oBgmnWygnF7xm6CfSWikp22ElVZY/view", image: "https://cdn.phototourl.com/free/2026-04-19-397e77be-16e0-4dea-a085-c050f6cfe680.png" },
+{ title: "Norbit", year: "2007", type: "Comedy", url: "https://drive.google.com/file/d/1PUIzjrlfRen4M7CqwIcmVdABNBpMWt5s/view", image: "https://cdn.phototourl.com/free/2026-04-19-28e933f4-f104-4602-bf7f-174540a8f2ab.png" },
+{ title: "The Incredibles", year: "2004", type: "Action", url: "https://drive.google.com/file/d/1XZrELbZbBqHShrCiPr4I4_pmOeT_gvwY/view", image: "https://cdn.phototourl.com/free/2026-04-19-162fd53d-5582-469f-aea0-c5722046a9a7.png" },
+{ title: "The Incredibles 2", year: "2018", type: "Action", url: "https://drive.google.com/file/d/1XZ0pSe4bccOpJeF_VkXhkOhxQ3Tzp8RB/view", image: "https://cdn.phototourl.com/free/2026-04-19-a9778b64-05d6-42b9-90be-de5a011d479c.png" },
+{ title: "Friday", year: "1995", type: "Comedy Drama", url: "https://drive.google.com/file/d/1SKE9sQ-DnHRRVGxU10Qk2QJ1Ws2jvv5M/view", image: "https://cdn.phototourl.com/free/2026-04-19-1d21745f-7b64-4ae2-89b1-281fec514117.png" },
+{ title: "Captain America Civil War", year: "2016", type: "Action", url: "https://drive.google.com/file/d/1Nxa3sYkElNdePQ3kB_KNRe_tOU5Ee5WX/view", image: "https://cdn.phototourl.com/free/2026-04-25-26936b8d-8877-43e6-a7e1-7ed734a432a6.png" },
+{ title: "Space Jam A New Legacy", year: "2021", type: "Comedy", url: "https://drive.google.com/file/d/17hubcXZlc8AQCick-5kdB11mpEQlM1Zw/view", image: "https://cdn.phototourl.com/free/2026-04-25-da2ce84f-4a67-4d9a-8b96-9d853096b59e.png" },
+{ title: "The Lorax", year: "2012", type: "Comedy", url: "https://drive.google.com/file/d/1HrS7pC_Hu4ixtemyA4cX7mzLg1YHVSgy/view", image: "https://cdn.phototourl.com/free/2026-04-25-10d19aca-efad-41e7-a625-020023e3cf80.png" },
+{ title: "Home Alone", year: "1990", type: "Comedy", url: "https://drive.google.com/file/d/18YKNCTokG3B7ZWzCE3thunyDJMktLxnm/view", image: "https://cdn.phototourl.com/free/2026-04-25-300953d7-a510-4df3-b200-d645d7e9e2cb.png" },
+{ title: "Moana", year: "2016", type: "Adventure", url: "https://drive.google.com/file/d/1Zkep5HZHk6daQhYjAN5Y9fBGy-K9dCu3/view", image: "https://upload.wikimedia.org/wikipedia/en/2/26/Moana_Teaser_Poster.jpg" },
+{ title: "Moana 2", year: "2024", type: "Adventure", url: "https://drive.google.com/file/d/1khAaDGsMt8pAGqtIPJERCqM_PgpiLShO/view", image: "https://upload.wikimedia.org/wikipedia/en/thumb/7/73/Moana_2_poster.jpg/250px-Moana_2_poster.jpg" },
+{ title: "Titanic", year: "1997", type: "Romance Drama", url: "https://drive.google.com/file/d/1WKcmkcQ52UBsN8WcWUEnwasMOA_1J0VK/view", image: "https://cdn.phototourl.com/free/2026-04-19-9250d271-1c91-42c2-a234-1d7eb2023824.png" },
+{ title: "A Charlie Brown Christmas", year: "1965", type: "Animation", url: "https://drive.google.com/file/d/1e2UIrJdsz_0k5tp2v0EnPZiPv2ZQSTzg/view", image: "https://cdn.phototourl.com/free/2026-04-25-4b3dcb60-12fe-4b07-b545-0f8aa0ce5715.png" },
+];
+
+const grid = document.getElementById('grid');
+const searchEl = document.getElementById('search');
+
+function buildCards() {
+  grid.innerHTML = '';
+  MEDIA.forEach(item => {
+    if (!item.url || item.url === 'driveurl') return;
+
+    const wrap = document.createElement('a');
+    wrap.className = 'card-wrap';
+    wrap.href = item.url;
+    wrap.target = '_blank';
+    wrap.rel = 'noopener noreferrer';
+    wrap.dataset.title = item.title.toLowerCase();
+    wrap.dataset.type = (item.type || '').toLowerCase();
+    wrap.dataset.year = item.year || '';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const img = document.createElement('img');
+    img.alt = item.title;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.src = (item.image && item.image !== 'imageurlhere') ? item.image : '';
+    img.onerror = function() { this.style.display = 'none'; };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'card-overlay';
+
+    card.appendChild(img);
+    card.appendChild(overlay);
+
+    const info = document.createElement('div');
+    info.className = 'card-info';
+    info.innerHTML =
+      `<div class="card-title">${item.title}</div>` +
+      `<div class="card-meta">${[item.year, item.type].filter(Boolean).join(' \u2022 ')}</div>`;
+
+    wrap.appendChild(card);
+    wrap.appendChild(info);
+    grid.appendChild(wrap);
+  });
+}
+
+function filterCards(query) {
+  const q = query.trim().toLowerCase();
+  let visible = 0;
+  grid.querySelectorAll('.card-wrap').forEach(wrap => {
+    const match = !q ||
+      wrap.dataset.title.includes(q) ||
+      wrap.dataset.type.includes(q) ||
+      wrap.dataset.year.includes(q);
+    wrap.classList.toggle('hidden', !match);
+    if (match) visible++;
+  });
+  let noRes = grid.querySelector('.no-results');
+  if (visible === 0) {
+    if (!noRes) {
+      noRes = document.createElement('div');
+      noRes.className = 'no-results';
+      grid.appendChild(noRes);
+    }
+    noRes.innerHTML = '<span>■</span>No movies found for "' + query.trim() + '"';
+  } else if (noRes) {
+    noRes.remove();
+  }
+}
+
+searchEl.addEventListener('input', e => filterCards(e.target.value));
+
+MEDIA.sort((a, b) => {
+  const aNum = /^\d/.test(a.title), bNum = /^\d/.test(b.title);
+  if (aNum && !bNum) return -1;
+  if (!aNum && bNum) return 1;
+  return a.title.localeCompare(b.title);
+});
+
+buildCards();
+</script>
+</body>
+</html>
